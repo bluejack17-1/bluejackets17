@@ -22,6 +22,11 @@ use App\Http\Controllers\BotEventHandlers\LeaveEventHandler;
 class LineBotController extends Controller {
 	public static function routes($app) {
 		$app->post('/webhook', 'LineBotController@hook');
+		// $app->get('/bottest', 'LineBotController@test');
+	}
+	public function test(Request $request) {
+		$bot = app(\App\LineBot::class)->bot();
+		var_dump($bot->getProfile('U99a00a58202a15s12f3464868111e5a5c')->getJSONDecodedBody()["displayName"]);
 	}
 	public function hook(Request $request) {
 		$bot = app(\App\LineBot::class)->bot();
