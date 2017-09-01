@@ -9,7 +9,7 @@ use App\Http\Controllers\GameHandlers\Werewolf\Models\WerewolfGame;
 class WerewolfPlayer extends Model
 {
     //
-    protected $fillable = ['name', 'role', 'alive', 'action', ];
+    protected $fillable = ['name', 'role', 'alive', 'action', 'extra', ];
     protected $hidden = [];
     
     public function werewolf_game() {

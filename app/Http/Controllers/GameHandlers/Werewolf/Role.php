@@ -33,7 +33,7 @@ class Role
 				}
 			}
 			if ($reshuffle) {
-				foreach ($roles as $role) {
+				foreach ($roles as &$role) {
 					$role['count'] = 0;
 				}
 			}
@@ -46,11 +46,20 @@ class Role
 					$roles[$idx]['count']++;
 					$player->role = $role['name'];
 					$player->save();
-					$bot->pushMessage($player->line_user->user_id, new TextMessageBuilder('You are ' . $role['name'] . '!'));
-					$bot->pushMessage($player->line_user->user_id, new TextMessageBuilder(json_encode($roles)));
+					$role_class = '\App\Http\Controllers\GameHandlers\Werewolf\Roles\\' . $role['name'] . 'Role';
+					$role_class::first($bot, $player);
 					break;
 				}
 			}
 		}
+	}
+
+	public static function getAlignment($role) {
+		$roles = [
+			'Villager' => 'town',
+			'Seer'     => 'town',
+			'Werewolf' => 'werewolf',
+		];
+		return array_key_exists($role, $roles) ? $roles[$role] : null;
 	}
 }

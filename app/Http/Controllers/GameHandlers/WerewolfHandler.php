@@ -1,15 +1,12 @@
 <?php
 
 namespace App\Http\Controllers\GameHandlers;
+use Illuminate\Http\Request;
 
 use LINE\LINEBot\MessageBuilder\TextMessageBuilder;
-
 use App\LineUser;
 use App\Http\Controllers\GameHandlers\Werewolf\Models\WerewolfPlayer;
 use App\Http\Controllers\GameHandlers\Werewolf\Models\WerewolfGame;
-use App\Http\Controllers\GameHandlers\Werewolf\Roles\Villager as VillagerRole;
-use App\Http\Controllers\GameHandlers\Werewolf\Roles\Werewolf as WerewolfRole;
-use App\Http\Controllers\GameHandlers\Werewolf\Roles\Seer as SeerRole;
 
 class WerewolfHandler {
 	public static function handle($args, $bot, $event) {
@@ -32,7 +29,7 @@ class WerewolfHandler {
 			$game->day = 0;
 			$game->start_time = $curr->format('Y-m-d H:i:') . '00';
 			$game->save();
-			return $bot->replyText($event->getReplyToken(), 'Game started! Type /werewolf join to join the game. You have until ' . $curr->format('H:i') . ' to join the game.');
+			return $bot->replyText($event->getReplyToken(), 'Game started! Type /werewolf join to join the game. You have until ' . $curr->format('g:iA') . ' to join the game.');
 		}
 		else if (strtolower($args[0]) === 'extend') {
 			if (!$event->isGroupEvent() && !$event->isRoomEvent()) return;
@@ -43,7 +40,7 @@ class WerewolfHandler {
 			$curr = \DateTime::createFromFormat('Y-m-d H:i:s', $game->start_time)->modify('+1 minutes');
 			$game->start_time = $curr->format('Y-m-d H:i:') . '00';
 			$game->save();
-			return $bot->replyText($event->getReplyToken(), 'Time extended! Type /werewolf join to join the game. You have until ' . $curr->format('H:i') . ' to join the game.');
+			return $bot->replyText($event->getReplyToken(), 'Time extended! Type /werewolf join to join the game. You have until ' . $curr->format('g:iA') . ' to join the game.');
 		}
 		else if (strtolower($args[0]) === 'join') {
 			if (!$event->isGroupEvent() && !$event->isRoomEvent()) return;
@@ -55,8 +52,14 @@ class WerewolfHandler {
 				if (!$user) {
 					return $bot->replyText($event->getReplyToken(), 'Please add me as a friend first.');
 				}
-				if (!$game || $game->phase !== 'join_phase') {
-					return $bot->replyText($event->getReplyToken(), 'Invalid game state!');
+				if ($user->werewolf_players()->first()) {
+					return $bot->replyText($event->getReplyToken(), 'It looks like you\'re already playing.');
+				}
+				if (!$game) {
+					return $bot->replyText($event->getReplyToken(), 'Game doesn\'t exist!');
+				}
+				if ($game->phase !== 'join_phase') {
+					return $bot->replyText($event->getReplyToken(), 'Game has already started!');
 				}
 				$profile = $bot->getProfile($event->getUserId())->getJSONDecodedBody();
 				if (array_key_exists('displayName', $profile)) {
@@ -94,10 +97,10 @@ class WerewolfHandler {
 		if (!$user) return $bot->replyText($event->getReplyToken(), 'Please add me as a friend first.');
 		$player = $user->werewolf_players()->first();
 		if ($player) {
-			$role = $player->role . 'Role';
-            if (method_exists($role, $event)) {
-                return $role::handle($bot, $player->werewolf_game, $player);
-            }
+			if ($player->role !== '') {
+			$role = '\App\Http\Controllers\GameHandlers\Werewolf\Roles\\' . $player->role . 'Role';
+			return $role::handle($args, $bot, $event, $player->werewolf_game, $player);
+			}
 		}
 	}
 	public static function cron($bot) {
@@ -111,7 +114,7 @@ class WerewolfHandler {
 			}
 			else {
 				if (\DateTime::createFromFormat('Y-m-d H:i:s', $game->timeout)->getTimestamp() <= $curr->getTimestamp()) {
-					return $game->next($bot);
+					return $game->timeout($bot);
 				}
 			}
 		}

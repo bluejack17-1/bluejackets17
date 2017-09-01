@@ -17,4 +17,9 @@ class LineBot {
 	public function bot() {
 		return $this->bot;
 	}
+
+	public static function randomize($arr) {
+		if (!is_array($arr)) return $arr;
+		return array_rand($arr);
+	}
 }
